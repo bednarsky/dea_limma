@@ -37,66 +37,66 @@ if (length(feature_annotation_path)!=0){
     print(dim(feature_annot))
 }
 
-### determine flags
-
-# find out if there is a term that was modelled as a means model and if yes, which metadata column that was
-# i.e., which is the first non-interaction term in the formula
-is_means_model <- attributes(terms(formula(formula)))$intercept == 0
-all_terms <- attributes(terms(formula(formula)))$term.labels
-means_model_term <- FALSE
-if (is_means_model){    
-    for (i in 1:length(all_terms)){
-        term <- all_terms[i]
-        if (grepl(":", term, fixed=TRUE)){
-            # interaction term, skip
-            next
+get_group_info <- function(ova_var, meta, all_terms) {
+    # find out if there is a term that was modelled as a means model and if yes, which metadata column that was
+    # i.e., which is the first non-interaction term in the formula
+    is_means_model <- attributes(terms(formula(formula)))$intercept == 0
+    all_terms <- attributes(terms(formula(formula)))$term.labels
+    means_model_term <- FALSE
+    if (is_means_model){    
+        for (i in 1:length(all_terms)){
+            term <- all_terms[i]
+            if (grepl(":", term, fixed=TRUE)){
+                # interaction term, skip
+                next
+            }
+            means_model_term <- gsub(" ", "", term)
+            break
         }
-        means_model_term <- gsub(" ", "", term)
-        break
     }
-}
-print(paste0("Means model term: ", means_model_term))
-# is the current OvA terms is the one that's modelled as a means model
-ova_is_means_model <- ova_var == means_model_term
-
-ova_is_interaction <- grepl(":", ova_var, fixed=TRUE)
-
-#### identify groups for one-vs-all contrasts using the metadata table, column prefix & design matrix
-# check if ova_var is numeric, and if yes, cause error since OvA does not make sense for continuous variables
-# ok to kill the process, since the user should not get to make this wrong choice
-# split in case this is an interaction term, i.e., contains a colon
-ova_vars <- unlist(strsplit(ova_var, ':'))
-for (var in ova_vars){
-    if (is.numeric(meta[, var])){
-        stop(paste0("One-vs-all contrasts do not make sense for numeric (non-factor) variable '", var, "'"))
+    print(paste0("Means model term: ", means_model_term))
+    
+    ova_is_means_model <- ova_var == means_model_term
+    ova_is_interaction <- grepl(":", ova_var, fixed=TRUE)
+    ova_vars <- unlist(strsplit(ova_var, ':'))
+    for (var in ova_vars){
+        if (is.numeric(meta[, var])){
+            stop(paste0("One-vs-all contrasts do not make sense for numeric (non-factor) variable '", var, "'"))
+        }
     }
+
+    if (ova_is_interaction){
+        # for interaction terms, get combinations
+        ova_vars <- ova_vars[order(match(ova_vars, all_terms))]
+        individual_group_levels <- lapply(ova_vars, function(var) {
+            unique(meta[, var])
+        })
+        level_combinations <- expand.grid(individual_group_levels, stringsAsFactors = FALSE)
+        group_names <- apply(level_combinations, 1, function(row) {
+            base::make.names(paste(row, collapse = ":"))
+        })
+        group_cols <- apply(level_combinations, 1, function(row) {
+            base::make.names(paste0(ova_vars, row, collapse = ":"))
+        })
+    } else {
+        group_names <- base::make.names(unique(meta[,ova_var]))
+        group_cols <- base::make.names(paste0(ova_var, group_names))
+    }
+    
+    return(list(
+        group_names = group_names,
+        group_cols = group_cols,
+        ova_is_interaction = ova_is_interaction,
+        ova_vars = ova_vars,
+    ))
 }
 
-if (ova_is_interaction){
-    # for interaction terms, need to generate all combinations of the levels
-    # there could be multiple colons in the variable name for high-order interaction terms
-    # the ova_vars need to be sorted in the order their main effects appear in the formula so that
-    # the naming is actually in the correct order 
-    ova_vars <- ova_vars[order(match(ova_vars, all_terms))]
-    # get the unique levels of each variable in the metadata
-    individual_group_levels <- lapply(ova_vars, function(var) {
-        unique(meta[, var])
-    })
-    # get combinations of all group levels
-    level_combinations <- expand.grid(individual_group_levels, stringsAsFactors = FALSE)
-    # the design matrix is saved with : in the column names for interaction terms, but fread replaces them with .
-    # this is based on the make.names() function, so use it here as well to make exactly the same names
-    group_names <- apply(level_combinations, 1, function(row) {
-        base::make.names(paste(row, collapse = ":"))
-    })
-    # add prefix to match the design matrix
-    group_cols <- apply(level_combinations, 1, function(row) {
-        base::make.names(paste0(ova_vars, row, collapse = ":"))
-    })
-} else {
-    group_names <- base::make.names(unique(meta[,ova_var]))
-    group_cols <- base::make.names(paste0(ova_var, group_names))
-}
+# Call function to get group information
+group_info <- get_group_info(ova_var, meta, all_terms)
+group_names <- group_info$group_names
+group_cols <- group_info$group_cols
+ova_is_interaction <- group_info$ova_is_interaction
+ova_vars <- group_info$ova_vars
 
 #### define contrasts
 contrasts_all <- list()
