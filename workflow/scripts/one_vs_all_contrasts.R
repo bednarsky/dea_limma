@@ -111,6 +111,9 @@ for (i in seq(length(group_names))){
         contrasts_all[[group_name]] <- paste0(
             group_col, " - (", paste(group_cols_wo_gr, collapse=" + "), ") / ", length(group_cols_wo_gr)
         )
+
+        print(paste0("Contrast for group '", group_name, "': "))
+        print(paste0("   ", contrasts_all[[group_name]]))
     
     } else if (!ova_is_means_model && !ova_is_interaction) {
         # each actual effect of the levels contains the intercept, so in the when subtracting the average of all other
@@ -150,56 +153,60 @@ for (i in seq(length(group_names))){
             contrasts_all[[group_name]] <- paste0(self_relative_effect, " - ", other_group_average)        
         }
 
+        print(paste0("Contrast for group '", group_name, "': "))
+        print(paste0("   ", contrasts_all[[group_name]]))
+
     } else if (ova_is_interaction) {
-        # if the current OvA term is an interaction, need to find all the columns that contribute to a group, i.e., 
-        # the main effects and the interaction effect, and sum them up to the get actual effect to compare
-        # the intercept column again cancels out and can be ignored
+        # for each interaction term calculate one contrast per main effect, compared to all other interaction terms
+        # that contain the same level of that main effect
+        # for example, for term1_B:term2_B, one time for all other interaction terms that contain term1_B, and one
+        # time for all other interaction terms that contain term2_B
         # depending on the model, different main effects will be in design matrix or be represented by the intercept
         main_effects <- strsplit(group_col, ".", fixed=TRUE)[[1]]
-        main_effects <- main_effects[main_effects %in% colnames(design)]
-        if (length(main_effects) == 0){
-            contrast_formula <- ""
-        } else {
-            contrast_formula <- paste0(main_effects, collapse=" + ")
-        } 
-        
-        # for the interaction term itself, for all but one of the groups, one level is chosen as reference level and
-        # all interaction terms with that reference level are not in the design matrix and don't need to be added
-        # add those that are there
-        if (group_col %in% colnames(design)){
-            contrast_formula <- paste0(contrast_formula, " + ", group_col)
-        }
-        
-        # find the mean effect of all other groups
-        other_group_effects <- c()
-        for (other_group_col in group_cols_wo_gr){
-            # for the other groups, add the main effects and the interaction term
-            other_main_effects <- strsplit(other_group_col, ".", fixed=TRUE)[[1]]
-            other_main_effects <- other_main_effects[other_main_effects %in% colnames(design)]
-            # check for the interaction term itself, if it is in the design matrix or one of the reference levels
-            if (other_group_col %in% colnames(design)){
-                other_main_effects <- c(other_main_effects, other_group_col)
+        for (j in 1:length(main_effects)){
+            main_effect <- main_effects[j]
+            contrast_name <- paste0(group_name, "_vs_other_", main_effect)
+            # n_group_names split by the number of levels of the current main effect gives us how many interaction terms
+            # there are in total for this main effect, then subtract one for the current interaction term
+            n_terms_in_mean_of_other_interacts <- length(group_names) / length(individual_group_levels[[j]]) - 1
+
+            if (group_col %in% colnames(design)){
+                contrast_formula <- group_col
+            } else {
+                contrast_formula <- ""
             }
             
-            other_group_effects <- c(other_group_effects, other_main_effects)
-        } 
-        if (length(other_group_effects) == 0){
-            contrasts_all[[group_name]] <- contrast_formula
-        } else {         
-            # collect the effects of all the other groups and sum then up, to then take the average
-            other_group_average <- paste0(
-                "(", paste(other_group_effects, collapse=" + "), ") / ", length(group_cols_wo_gr)
-            )
-            contrasts_all[[group_name]] <- paste0(contrast_formula, " - ", other_group_average)
+            # find the mean effect of all other interaction terms of the same level
+            other_group_effects <- c()
+            for (other_group_col in group_cols_wo_gr){
+                # check for the interaction term itself, if it is in the design matrix or one of the reference levels
+                # and only keep if if it is an interaction of the current main effect
+                not_reference <- other_group_col %in% colnames(design)
+                interaction_of_main_effect <- grepl(main_effect, other_group_col, fixed=TRUE)
+                if (not_reference && interaction_of_main_effect){
+                    other_group_effects <- c(other_group_effects, other_group_col)
+                }
+            } 
+            if (length(other_group_effects) != 0){
+                # collect the effects of all the other groups and sum then up, to then take the average
+                other_group_average <- paste0(
+                    "(", paste(other_group_effects, collapse=" + "), ") / ", n_terms_in_mean_of_other_interacts
+                )
+                contrast_formula <- paste0(contrast_formula, " - ", other_group_average)
+            }
+            if (nchar(contrast_formula) == 0){
+                print(paste0("No contrast for ", contrast_name))
+                next
+            } else {
+                contrasts_all[[contrast_name]] <- contrast_formula
+                print(paste0("Contrast for group '", contrast_name, "': "))
+                print(paste0("   ", contrasts_all[[contrast_name]]))
+            }
         }
 
     } else {
         stop(paste0("Term type unknown for '", ova_var, "'"))
     }
-    
-    print(paste0("Contrast for group '", group_name, "': "))
-    print(contrasts_all[[group_name]])
-
 }
 
 # generate contrast matrix based on contrast formulas and design matrix
