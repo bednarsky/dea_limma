@@ -21,6 +21,20 @@ eBayes_flag <- snakemake@params[["eBayes"]]
 limma_trend <- snakemake@params[["limma_trend"]]
 formula <- snakemake@params[["formula"]]
 
+# eBayes_flag <- 1 # HACK
+# limma_trend <- 0 # HACK
+# feature_annotation_path <- c() # HACK
+# feature_annotation_col <- 'X' # HACK
+# model_matrix_path <- 'results/differential_expression/dea_limma/testing_one_vs_all_dea__comparison1_8/model_matrix.csv' # HACK
+# lmfit_object_path <- 'results/differential_expression/dea_limma/testing_one_vs_all_dea__comparison1_8/lmfit_object.rds' # HACK
+# ova_var <- 'cell_type' # HACK
+# metadata_path <- 'results/differential_expression/spilterlize_integrate/matched_cell_types/L4/spilterlize_integrate/all/annotation.csv' # HACK
+# formula <- '~ TNM_N_nodes + cell_type + TNM_N_nodes:cell_type' # HACK
+# i <- 1 # HACK
+# contrast_result_path <- 'results/tmp/contrast_results.csv' # HACK
+# contrast_object_path <- 'results/tmp/contrast_object.rds' # HACK
+# contrast_matrix_path <- 'results/tmp/contrast_matrix.csv' # HACK
+
 #### load data (model, design, feature_annotation and metadata)
 fit <- readRDS(lmfit_object_path)
 design <- data.frame(fread(file.path(model_matrix_path), header=TRUE), row.names=1)
