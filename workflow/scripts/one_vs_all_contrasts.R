@@ -101,14 +101,14 @@ if (ova_is_interaction){
     # the design matrix is saved with : in the column names for interaction terms, but fread replaces them with .
     # this is based on the make.names() function, so use it here as well to make exactly the same names
     group_names <- apply(level_combinations, 1, function(row) {
-        base::make.names(paste(row, collapse = ":"))
+        paste(row, collapse = ":")
     })
     # add prefix to match the design matrix
     group_cols <- apply(level_combinations, 1, function(row) {
         base::make.names(paste0(ova_vars, row, collapse = ":"))
     })
 } else {
-    group_names <- base::make.names(unique(meta[,ova_var]))
+    group_names <- unique(meta[,ova_var])
     group_cols <- base::make.names(paste0(ova_var, group_names))
 }
 
@@ -135,7 +135,7 @@ for (i in seq(length(group_names))){
         # reference group), where the relative effect for the reference group itself is 0 (in the contrast formula just
         # falls away, but is counted for the denominator in the mean).
     
-        reference_group <- setdiff(group_cols, colnames(design))
+        group <- setdiff(group_cols, colnames(design))
         if (length(reference_group) != 1) {
             # something went wrong
             stop("There should be exactly one reference group in the design matrix.")
