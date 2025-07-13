@@ -58,7 +58,7 @@ Finally, quality control plots of the fitted mean-variance relationship and raw 
 # 🚀 Features
 The workflow performs the following steps that produce the outlined results:
 
-- Differential Expression Analysis (DEA) steps:
+- Differential Expression Analysis (DEA) steps and results:
   - (optional) calculation of normalization factors using __edgeR::calcNormFactors__.
   - (optional) calculation of precision weights to model the mean-variance relationship in order to make linear models "applicable" to count data (weighted least squares) using __voom__.
   - (optional) __block__ on a "group" factor in case you have repeated measurements (generalized least squares).
@@ -68,10 +68,11 @@ The workflow performs the following steps that produce the outlined results:
   - (optional) improve variance estimation using __eBayes__ with the robustness flag (`robust=TRUE`), which applies a robust empirical Bayes approach that downweights extreme variance estimates via winsorization, stabilizing hyperparameters across all genes (i.e., shrinking them toward a common value) and yielding moderated t-statistics and p-values that are more reliable in heterogeneous datasets.
       - (optional) eBayes with __limma-trend__ (trend=TRUE)
   - extract all statistics for variables of interest (=configured comparisons) using __topTable__ (eg coefficients/effect size, statistical significance,...).
-  - save a feature list per comparison group and direction of change (up/down) for downstream analyses (eg enrichment analysis) (TXT).
-    - (optional) annotated feature list with suffix "_annot" (TXT).
-  - (optional) save feature score tables (with two columns: "feature" and "score") per comparison group using score_formula for downstream analyses (eg ranked enrichment analysis) (CSV).
-    - (optional) annotated feature scores tables (with two columns: "feature_name" and "score") with suffix "_annot" (CSV).
+  - save a feature list per comparison group and direction of change (up/down) for downstream analyses (e.g., enrichment analysis) (`{analysis}/feature_lists/{group}_{up|down}_features.txt`).
+    - (optional) annotated feature list with suffix "_annot" (`{analysis}/feature_lists/{group}_{up|down}_features_annot.txt`).
+    - If your features represent identifiers of genomic regions (e.g., from ATAC-seq or ChIP-seq), they must be converted to the `BED` format for use in downstream analysis like genomic region enrichment analysis. We provide a convenient helper script for this in our [enrichment analysis module](https://github.com/epigen/enrichment_analysis). For instructions, see: [How to convert feature lists to BED files](https://github.com/epigen/enrichment_analysis?tab=readme-ov-file#-how-to-convert-feature-lists-to-bed-files).
+  - (optional) save feature score tables (with two columns: "feature" and "score") per comparison group using score_formula for downstream analyses (e.g., pre-ranked enrichment analysis) (`{analysis}/feature_lists/{group}_featureScores.csv`).
+    - (optional) annotated feature scores tables (with two columns: "feature_name" and "score") with suffix "_annot" (`{analysis}/feature_lists/{group}_featureScores_annot.csv`).
   - (optional) One-vs-all (OvA) analysis on modeled and specified covariates using contrasts, enabling automated comparison of each group against all others for a given term (e.g., cell types). This is implemented to work for all terms in a model, including interactions, but not numerical covariates (not possible). A separate result folder `{name}_OvA_{variable}` is generated per `variable` (i.e., term).
     - example use-case: You have RNA-seq samples of multiple cell types and want to find a signature of genes that is up- or downregulated per cell type compared to the average of all other cell types, while controling for covariates like batch or donor.
 - DEA result statistics: total number of statistically significant features and split by positive (up) and negative (down) change (CSV).
@@ -163,9 +164,12 @@ fwrite(as.data.frame(contrast_result), file=file.path("path/to/contrast_results.
 Detailed specifications can be found here [./config/README.md](./config/README.md)
 
 # 📖 Examples
-Explore detailed examples showcasing module usage in comprehensive end-to-end analyses (including data, configuration, annotation and results) in our [MrBiomics Recipes](https://github.com/epigen/MrBiomics?tab=readme-ov-file#-recipes):
-- [ATAC-seq Analysis Recipe](https://github.com/epigen/MrBiomics/wiki/ATACseq-Analysis-Recipe)
-- [RNA-seq Analysis Recipe](https://github.com/epigen/MrBiomics/wiki/RNAseq-Analysis-Recipe)
+Explore detailed examples showcasing module usage in our comprehensive end-to-end [MrBiomics Recipes](https://github.com/epigen/MrBiomics?tab=readme-ov-file#-recipes), including data, configuration, annotation and results:
+- [ATAC-seq Analysis Recipe](https://github.com/epigen/MrBiomics/wiki/ATAC%E2%80%90seq-Analysis-Recipe)
+- [RNA-seq Analysis Recipe](https://github.com/epigen/MrBiomics/wiki/RNA%E2%80%90seq-Analysis-Recipe)
+- [Integrative Analysis Recipe](https://github.com/epigen/MrBiomics/wiki/Integrative-Analysis-Recipe)
+- [scRNA-seq Analysis Recipe](https://github.com/epigen/MrBiomics/wiki/scRNA%E2%80%90seq-Analysis-Recipe)
+- [scCRISPR-seq Analysis Recipe](https://github.com/epigen/MrBiomics/wiki/scCRISPR%E2%80%90seq-Analysis-Recipe)
 
 # 🔗 Links
 - [GitHub Repository](https://github.com/epigen/dea_limma/)

@@ -47,7 +47,6 @@ rule one_vs_all_contrasts:
         limma_trend = lambda w: annot_dict["{}".format(w.analysis)]["limma_trend"],
         feature_annotation_col = config["feature_annotation"]["column"],
         formula = lambda w: annot_dict["{}".format(w.analysis)]["formula"],
-        reference_levels = config["reference_levels"],
         original_ova_var = lambda w: ova_analyses[f"{w.analysis}_OvA_{w.ova_var}"]
     resources:
         mem_mb=config.get("mem", "16000"),
@@ -66,7 +65,7 @@ rule aggregate:
     output:
         all_features = os.path.join(result_path,'{analysis}','feature_lists','ALL_features.txt'),
         all_features_annot = os.path.join(result_path,'{analysis}','feature_lists','ALL_features_annot.txt') if config["feature_annotation"]["path"]!="" else [],
-        feature_lists = directory(os.path.join(result_path,'{analysis}','feature_lists')),
+        # feature_lists = directory(os.path.join(result_path,'{analysis}','feature_lists')),
         dea_stats = report(os.path.join(result_path,'{analysis}','stats.csv'), 
                                   caption="../report/dea_stats.rst", 
                                   category="{}_{}".format(config["project_name"], module_name),
