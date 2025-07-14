@@ -25,11 +25,11 @@ formula <- snakemake@params[["formula"]]
 # limma_trend <- 0 # HACK
 # feature_annotation_path <- c() # HACK
 # feature_annotation_col <- 'X' # HACK
-# model_matrix_path <- 'results/differential_expression/dea_limma/testing_one_vs_all_dea__comparison1_8/model_matrix.csv' # HACK
-# lmfit_object_path <- 'results/differential_expression/dea_limma/testing_one_vs_all_dea__comparison1_8/lmfit_object.rds' # HACK
-# ova_var <- 'cell_type' # HACK
-# metadata_path <- 'results/differential_expression/spilterlize_integrate/matched_cell_types/L4/spilterlize_integrate/all/annotation.csv' # HACK
-# formula <- '~ TNM_N_nodes + cell_type + TNM_N_nodes:cell_type' # HACK
+# model_matrix_path <- 'results/differential_expression/dea_limma/testing_one_vs_all_dea__comparison1_3/model_matrix.csv' # HACK
+# lmfit_object_path <- 'results/differential_expression/dea_limma/testing_one_vs_all_dea__comparison1_3/lmfit_object.rds' # HACK
+# ova_var <- 'cell_type:TNM_N_nodes' # HACK
+# metadata_path <- 'results/differential_expression/spilterlize_integrate/matched_cell_types/L4/spilterlize_integrate/not_all_metadata_False/annotation.csv' # HACK
+# formula <- '~ TNM_N_nodes + cell_type + cell_type:TNM_N_nodes' # HACK
 # i <- 1 # HACK
 # contrast_result_path <- 'results/tmp/contrast_results.csv' # HACK
 # contrast_object_path <- 'results/tmp/contrast_object.rds' # HACK
@@ -89,9 +89,13 @@ for (var in ova_vars){
 if (ova_is_interaction){
     # for interaction terms, need to generate all combinations of the levels
     # there could be multiple colons in the variable name for high-order interaction terms
-    # the ova_vars need to be sorted in the order their main effects appear in the formula so that
-    # the naming is actually in the correct order 
-    ova_vars <- ova_vars[order(match(ova_vars, all_terms))]
+    # the ova_vars need to be sorted in the order that also appears in the design matrix
+    # Find first column name containing a dot followed by any of the ova_vars
+    example_interaction <- grep(paste0("\\.(", paste(ova_vars, collapse="|"), ")"), colnames(design), value=TRUE)[1]
+    # example_interaction colname looks like 'cell_typeEpi_Colonocyte.TNM_N_nodesN1'
+    # sort ova_vars based on their order of appearance in example_interaction
+    ova_vars <- ova_vars[order(sapply(ova_vars, function(x) regexpr(x, example_interaction)))]
+
     # get the unique levels of each variable in the metadata
     individual_group_levels <- lapply(ova_vars, function(var) {
         unique(meta[, var])
